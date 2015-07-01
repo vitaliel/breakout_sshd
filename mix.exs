@@ -14,7 +14,7 @@ defmodule Breakout.Sshd.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger, :ssh, :porcelain],
+    [applications: [:logger, :ssh],
       mod: {Breakout.Sshd, []}
     ]
   end
@@ -29,6 +29,6 @@ defmodule Breakout.Sshd.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    [{:porcelain, "~> 2.0"}]
+    []
   end
 end

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Use 22344 port for ssh
+# GIT_SSH=ssh_erl git push origin master
+
+ssh -p 22344 $@

@@ -1,9 +1,10 @@
 defmodule Breakout.Sshd.Channel do
   @behaviour :ssh_daemon_channel
 
-  def init(options) do
-    IO.puts "init options #{inspect options}"
-    {:ok, %{channel: nil, cm: nil}}
+  alias Breakout.GitExec
+
+  def init(_options) do
+    {:ok, %{channel: nil, cm: nil, exec_pid: nil}}
   end
 
   def handle_call(msg, _from, state) do
@@ -30,10 +31,19 @@ defmodule Breakout.Sshd.Channel do
   end
 
   # data requests
-  def handle_ssh_msg({:ssh_cm, conn,
+  def handle_ssh_msg({:ssh_cm, _conn,
       {:data, _channel_id, _type, data}}, state) do
-    IO.puts "handle_ssh_msg #{inspect data}"
-    # TODO forward to git command
+    #IO.puts "handle_ssh_msg data len:#{String.length data} #{inspect data}"
+
+    GitExec.process_input state.exec_pid, data
+
+    {:ok, state}
+  end
+
+  def handle_ssh_msg({:ssh_cm, _, {:eof, channel_id}}, state) do
+    #IO.puts "ssh_cm receive eof, #{channel_id}"
+    GitExec.stop state.exec_pid
+
     {:ok, state}
   end
 
@@ -62,20 +72,19 @@ defmodule Breakout.Sshd.Channel do
   def handle_ssh_msg({:ssh_cm, conn,
       {:exec, channel_id, want_reply, cmd}}, state) do
 
+    {:ok, pid} = GitExec.start %{conn: conn, channel_id: channel_id, cmd: to_string(cmd)}
     :ssh_connection.reply_request(conn, want_reply, :success, channel_id)
-    :ssh_connection.exit_status(conn, channel_id, Status)
-    :ssh_connection.send_eof(ConnectionHandler, channel_id)
-    {:stop, channel_id, %{state | channel: channel_id, cm: conn}}
+
+    {:ok, %{state | exec_pid: pid}}
   end
 
   def handle_ssh_msg({:ssh_cm, _, {:exit_signal, channel_id, _, error, _}}, state) do
-    # Report = io_lib:format("Connection closed by peer ~n Error ~p~n",
-    #      [Error]),
-    # error_logger:error_report(Report),
-    {:stop, channel_id,  state}
+    :logger.error error
+    {:stop, channel_id, state}
   end
 
   def handle_ssh_msg({:ssh_cm, _, {:exit_status, channel_id, 0}}, state) do
+    IO.puts "ssh_cm exit_status, #{channel_id}"
     {:stop, channel_id, state}
   end
 
@@ -90,6 +99,7 @@ defmodule Breakout.Sshd.Channel do
   end
 
   def terminate(reason, _state) do
-    IO.puts "handle_ssh_msg msg #{inspect reason}"
+    :logger.info "terminated reason #{inspect reason}"
+    #IO.puts "terminate, port #{inspect Process.info(state.exec_pid)}"
   end
 end

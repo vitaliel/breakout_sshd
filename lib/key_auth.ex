@@ -6,7 +6,7 @@ defmodule Breakout.Sshd.KeyAuth do
   # {:ok, Key}
   # {:error, "Failed something"}
   def host_key(alg, daemon_options) do
-    IO.puts "alg #{inspect alg}"
+    #IO.puts "alg #{inspect alg}"
 
     dir = to_string :proplists.get_value(:system_dir, daemon_options)
 
@@ -23,12 +23,12 @@ defmodule Breakout.Sshd.KeyAuth do
   # key DSA/RSA public key
   # user string
   # bool
-  def is_auth_key(key, user, daemon_options) do
-    [type, base64 | _] = String.split :pubkey_ssh.encode([{key, []}], :openssh_public_key), " "
+  def is_auth_key(key, _user, _daemon_options) do
+    [_type, base64 | _] = String.split :pubkey_ssh.encode([{key, []}], :openssh_public_key), " "
     data = :base64.mime_decode(base64)
     md5 = Utils.bin_to_hex :crypto.hash(:md5, data)
 
-    IO.puts "key type: #{type} md5: #{inspect md5} user: #{inspect user} opts #{inspect daemon_options}"
+    #IO.puts "key type: #{type} md5: #{inspect md5} user: #{inspect user}"
     md5 == "1b:7:46:c1:7:7:93:50:cb:9b:25:1c:3d:a5:49:98"
   end
 
